@@ -83,7 +83,7 @@ func (c *Client) FindBlobsByBucket(bucket string) ([]BlobInfo, error) {
 	}
 
 	var response struct {
-		blobs []BlobInfo
+		Blobs []BlobInfo `json:"blobs"`
 	}
 
 	err = json.Unmarshal(bodyBytes, &response)
@@ -91,5 +91,5 @@ func (c *Client) FindBlobsByBucket(bucket string) ([]BlobInfo, error) {
 		return nil, fmt.Errorf("error deserializing response %w", err)
 	}
 
-	return response.blobs, nil
+	return response.Blobs, nil
 }
