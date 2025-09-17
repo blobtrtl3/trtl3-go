@@ -36,5 +36,5 @@ func NewClient(url string, token string) *Client {
 // sign url
 
 func (c *Client) setAuth(req *http.Request) {
-  req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.Token))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.Token))
 }

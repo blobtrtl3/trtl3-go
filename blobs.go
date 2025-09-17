@@ -41,7 +41,7 @@ func (c *Client) UploadBlob(bucket string, file string, r io.Reader) (bool, erro
 		return false, fmt.Errorf("error creating request: %w", err)
 	}
 
-  req.Header.Set("Content-Type", w.FormDataContentType())
+	req.Header.Set("Content-Type", w.FormDataContentType())
 	c.setAuth(req)
 
 	res, err := c.httpClient.Do(req)
@@ -82,7 +82,7 @@ func (c *Client) FindBlobsByBucket(bucket string) ([]BlobInfo, error) {
 		return nil, fmt.Errorf("Error reading response body: %w", err)
 	}
 
- 	var response struct {
+	var response struct {
 		blobs []BlobInfo
 	}
 
@@ -93,4 +93,3 @@ func (c *Client) FindBlobsByBucket(bucket string) ([]BlobInfo, error) {
 
 	return response.blobs, nil
 }
-
