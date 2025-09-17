@@ -6,21 +6,20 @@ import (
 )
 
 type Client struct {
-	url        string
-	token      string
+	Url        string
+	Token      string
 	httpClient *http.Client
 }
 
 func NewClient(url string, token string) *Client {
 	return &Client{
-		url:        url,
-		token:      token,
+		Url:        url,
+		Token:      token,
 		httpClient: &http.Client{Timeout: 5 * time.Second},
 	}
 }
 
 // TODO: routes
-// save blob
 // find unique blob
 // find blobs by bucket
 // download blob
