@@ -7,6 +7,7 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"net/textproto"
 	"os"
 )
 
@@ -16,7 +17,31 @@ func (c *Client) UploadBlob(bucket string, r io.Reader) (bool, error) {
 	var buffer bytes.Buffer
 	w := multipart.NewWriter(&buffer)
 
-	formFile, err := w.CreateFormFile("blob", "blob")
+	formBucket, err := w.CreateFormField("bucket")
+	if err != nil {
+		return false, fmt.Errorf("error writing bucket: %s", err)
+	}
+
+	formBucket.Write([]byte(bucket))
+
+	buf := make([]byte, 512)
+	n, err := r.Read(buf)
+	if err != nil {
+		return false, fmt.Errorf("error reading blob: %s", err)
+	}
+
+	var mime = "application/octet-stream"
+
+	if n > 0 {
+		mime = http.DetectContentType(buf[:n])
+	}
+
+	r = io.MultiReader(bytes.NewReader(buf[:n]), r)
+
+	partHeader := textproto.MIMEHeader{}
+	partHeader.Set("Content-Disposition", `form-data; name="blob"; filename="blob"`)
+	partHeader.Set("Content-Type", mime)
+	formFile, err := w.CreatePart(partHeader)
 	if err != nil {
 		return false, fmt.Errorf("error creating form file: %s", err)
 	}
@@ -24,13 +49,6 @@ func (c *Client) UploadBlob(bucket string, r io.Reader) (bool, error) {
 	if _, err := io.Copy(formFile, r); err != nil {
 		return false, fmt.Errorf("error copying blob content: %s", err)
 	}
-
-	formBucket, err := w.CreateFormField("bucket")
-	if err != nil {
-		return false, fmt.Errorf("error writing bucket: %s", err)
-	}
-
-	formBucket.Write([]byte(bucket))
 
 	if err := w.Close(); err != nil {
 		return false, fmt.Errorf("error closing writer: %s", err)
@@ -41,16 +59,7 @@ func (c *Client) UploadBlob(bucket string, r io.Reader) (bool, error) {
 		return false, fmt.Errorf("error creating request: %w", err)
 	}
 
-	buf := make([]byte, 512)
-	n, err := r.Read(buf)
-	if err != nil {
-		return false, err
-	}
-
-	req.Header.Set("Content-Type", http.DetectContentType(buf[:n]))
-
-	r = io.MultiReader(bytes.NewReader(buf[:n]), r)
-
+	req.Header.Set("Content-Type", w.FormDataContentType())
 	c.setAuth(req)
 
 	res, err := c.httpClient.Do(req)
