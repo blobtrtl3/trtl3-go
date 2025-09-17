@@ -22,11 +22,7 @@ func (c *Client) UploadBlob(bucket string, file string, r io.Reader) (bool, erro
 	}
 
 	if _, err := io.Copy(formFile, r); err != nil {
-		return false, fmt.Errorf("error copying object content: %s", err)
-	}
-
-	if err := w.Close(); err != nil {
-		return false, fmt.Errorf("error closing writer: %s", err)
+		return false, fmt.Errorf("error copying blob content: %s", err)
 	}
 
 	formBucket, err := w.CreateFormField("bucket")
@@ -35,6 +31,10 @@ func (c *Client) UploadBlob(bucket string, file string, r io.Reader) (bool, erro
 	}
 
 	formBucket.Write([]byte(bucket))
+
+	if err := w.Close(); err != nil {
+		return false, fmt.Errorf("error closing writer: %s", err)
+	}
 
 	req, err := http.NewRequest(http.MethodPost, endpoint, &buffer)
 	if err != nil {
