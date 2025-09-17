@@ -2,6 +2,7 @@ package trtl3
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -41,7 +42,7 @@ func (c *Client) UploadBlob(bucket string, file string, r io.Reader) (bool, erro
 	}
 
   req.Header.Set("Content-Type", w.FormDataContentType())
-  req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.Token))
+	c.setAuth(req)
 
 	res, err := c.httpClient.Do(req)
 	if err != nil {
@@ -55,3 +56,41 @@ func (c *Client) UploadBlob(bucket string, file string, r io.Reader) (bool, erro
 
 	return true, nil
 }
+
+func (c *Client) FindBlobsByBucket(bucket string) ([]BlobInfo, error) {
+	url := fmt.Sprintf("%s/blobs?bucket=%s", c.Url, bucket)
+
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("error trying to create the request: %s", err)
+	}
+
+	c.setAuth(req)
+
+	res, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("error while doing a request to the server: %s", err)
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed trying to find created blobs(status: %d)", res.StatusCode)
+	}
+
+	bodyBytes, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, fmt.Errorf("Error reading response body: %w", err)
+	}
+
+ 	var response struct {
+		blobs []BlobInfo
+	}
+
+	err = json.Unmarshal(bodyBytes, &response)
+	if err != nil {
+		return nil, fmt.Errorf("error deserializing response %w", err)
+	}
+
+	return response.blobs, nil
+}
+
