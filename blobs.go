@@ -101,10 +101,43 @@ func (c *Client) FindBlobsByBucket(bucket string) ([]BlobInfo, error) {
 		Blobs []BlobInfo `json:"blobs"`
 	}
 
-	err = json.Unmarshal(bodyBytes, &response)
-	if err != nil {
+	if err = json.Unmarshal(bodyBytes, &response); err != nil {
 		return nil, fmt.Errorf("error deserializing response %w", err)
 	}
 
 	return response.Blobs, nil
+}
+
+func (c *Client) FindUniqueBlob(bucket, id string) (BlobInfo, error) {
+	url := fmt.Sprintf("%s/blobs/%s/%s", c.Url, bucket, id)
+
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return BlobInfo{}, fmt.Errorf("error trying to create the request: %s", err)
+	}
+
+	c.setAuth(req)
+
+	res, err := c.httpClient.Do(req)
+	if err != nil {
+		return BlobInfo{}, fmt.Errorf("error while doing a request to the server: %s", err)
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		return BlobInfo{}, fmt.Errorf("failed trying to find created blobs(status: %d)", res.StatusCode)
+	}
+
+	bodyBytes, err := io.ReadAll(res.Body)
+	if err != nil {
+		return BlobInfo{}, fmt.Errorf("Error reading response body: %s", err)
+	}
+
+	blobInfo := BlobInfo{}
+
+	if err = json.Unmarshal(bodyBytes, &blobInfo); err != nil {
+		return blobInfo, fmt.Errorf("error deserializing response %s", err)
+	}
+
+	return blobInfo, nil
 }
