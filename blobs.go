@@ -8,16 +8,15 @@ import (
 	"mime/multipart"
 	"net/http"
 	"os"
-	"path/filepath"
 )
 
-func (c *Client) UploadBlob(bucket string, name string, r io.Reader) (bool, error) {
+func (c *Client) UploadBlob(bucket string, r io.Reader) (bool, error) {
 	endpoint := fmt.Sprintf("%s/blobs", c.Url)
 
 	var buffer bytes.Buffer
 	w := multipart.NewWriter(&buffer)
 
-	formFile, err := w.CreateFormFile("blob", name)
+	formFile, err := w.CreateFormFile("blob", "blob")
 	if err != nil {
 		return false, fmt.Errorf("error creating form file: %s", err)
 	}
@@ -42,7 +41,16 @@ func (c *Client) UploadBlob(bucket string, name string, r io.Reader) (bool, erro
 		return false, fmt.Errorf("error creating request: %w", err)
 	}
 
-	req.Header.Set("Content-Type", w.FormDataContentType())
+	buf := make([]byte, 512)
+	n, err := r.Read(buf)
+	if err != nil {
+		return false, err
+	}
+
+	req.Header.Set("Content-Type", http.DetectContentType(buf[:n]))
+
+	r = io.MultiReader(bytes.NewReader(buf[:n]), r)
+
 	c.setAuth(req)
 
 	res, err := c.httpClient.Do(req)
@@ -64,7 +72,7 @@ func (c *Client) UploadBlobByPath(bucket string, path string) (bool, error) {
 		return false, err
 	}
 
-	_, err = c.UploadBlob(bucket, filepath.Base(path), r)
+	_, err = c.UploadBlob(bucket, r)
 	if err != nil {
 		return false, err
 	}
