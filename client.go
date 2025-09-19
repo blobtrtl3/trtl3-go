@@ -35,9 +35,6 @@ func NewClient(url string, token string) *Client {
 	}
 }
 
-// TODO: routes
-// download blob
-
 func (c *Client) setAuth(req *http.Request) {
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.Token))
 }

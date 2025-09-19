@@ -222,3 +222,26 @@ func (c *Client) DeleteBlob(bucket, id string) (bool, error) {
 
 	return true, nil
 }
+
+func (c *Client) DownloadBlob(bucket, id string) (io.ReadCloser, error) {
+	endpoint := fmt.Sprintf("%s/blobs/download/%s/%s", c.Url, bucket, id)
+
+	req, err := http.NewRequest(http.MethodGet, endpoint, nil)
+	if err != nil {
+		return nil, fmt.Errorf("error trying to create the request: %s", err)
+	}
+
+	c.setAuth(req)
+
+	res, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("error while doing a request to the server: %s", err)
+	}
+
+	if res.StatusCode != http.StatusOK {
+		res.Body.Close()
+		return nil, fmt.Errorf("failed trying to download the blob (status: %d)", res.StatusCode)
+	}
+
+	return res.Body, nil
+}
