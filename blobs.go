@@ -111,7 +111,7 @@ func (c *Client) FindBlobsByBucket(bucket string) ([]BlobInfo, error) {
 
 	bodyBytes, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, fmt.Errorf("Error reading response body: %w", err)
+		return nil, fmt.Errorf("error reading response body: %w", err)
 	}
 
 	var response struct {
@@ -147,7 +147,7 @@ func (c *Client) FindUniqueBlob(bucket, id string) (BlobInfo, error) {
 
 	bodyBytes, err := io.ReadAll(res.Body)
 	if err != nil {
-		return BlobInfo{}, fmt.Errorf("Error reading response body: %s", err)
+		return BlobInfo{}, fmt.Errorf("error reading response body: %s", err)
 	}
 
 	blobInfo := BlobInfo{}
@@ -157,4 +157,68 @@ func (c *Client) FindUniqueBlob(bucket, id string) (BlobInfo, error) {
 	}
 
 	return blobInfo, nil
+}
+
+func (c *Client) SignUrl(sign Signature) (string, error) {
+	endpoint := fmt.Sprintf("%s/blobs/sign", c.Url)
+
+	request, err := json.Marshal(sign)
+	if err != nil {
+		return "", fmt.Errorf("error trying to create the request: %s", err)
+	}
+
+	req, err := http.NewRequest(http.MethodPost, endpoint, bytes.NewReader(request))
+	if err != nil {
+		return "", fmt.Errorf("error trying to create the request: %s", err)
+	}
+
+	c.setAuth(req)
+
+	res, err := c.httpClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("error while doing a request to the server: %s", err)
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusCreated {
+		return "", fmt.Errorf("failed trying to create a signed url(status: %d)", res.StatusCode)
+	}
+
+	bodyBytes, err := io.ReadAll(res.Body)
+	if err != nil {
+		return "", fmt.Errorf("error reading response body: %s", err)
+	}
+
+	var response struct {
+		Url string `json:"url"`
+	}
+
+	if err = json.Unmarshal(bodyBytes, &response); err != nil {
+		return "", fmt.Errorf("error deserializing response %s", err)
+	}
+
+	return response.Url, nil
+}
+
+func (c *Client) DeleteBlob(bucket, id string) (bool, error) {
+	endpoint := fmt.Sprintf("%s/blobs/%s/%s", c.Url, bucket, id)
+
+	req, err := http.NewRequest(http.MethodDelete, endpoint, nil)
+	if err != nil {
+		return false, fmt.Errorf("error trying to create the request: %s", err)
+	}
+
+	c.setAuth(req)
+
+	res, err := c.httpClient.Do(req)
+	if err != nil {
+		return false, fmt.Errorf("error while doing a request to the server: %s", err)
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		return false, fmt.Errorf("failed trying to delete a blob (status: %d)", res.StatusCode)
+	}
+
+	return true, nil
 }

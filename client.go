@@ -20,6 +20,13 @@ type BlobInfo struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+type Signature struct {
+	Bucket string
+	ID     string
+	TTL    int
+	Once   bool
+}
+
 func NewClient(url string, token string) *Client {
 	return &Client{
 		Url:        url,
@@ -29,11 +36,7 @@ func NewClient(url string, token string) *Client {
 }
 
 // TODO: routes
-// find unique blob
-// find blobs by bucket
 // download blob
-// delete blob
-// sign url
 
 func (c *Client) setAuth(req *http.Request) {
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.Token))
