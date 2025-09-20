@@ -27,11 +27,19 @@ type Signature struct {
 	Once   bool
 }
 
-func NewClient(url string, token string) *Client {
+func NewDefaultClient() *Client {
+	return &Client{
+		Url:        "http://localhost:7713",
+		Token:      "trtl3",
+		httpClient: &http.Client{Timeout: 5 * time.Second},
+	}
+}
+
+func NewClient(url string, token string, timeout time.Duration) *Client {
 	return &Client{
 		Url:        url,
 		Token:      token,
-		httpClient: &http.Client{Timeout: 5 * time.Second},
+		httpClient: &http.Client{Timeout: timeout * time.Second},
 	}
 }
 
